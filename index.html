@@ -6,16 +6,14 @@
     <title>夏祭りARフィルター - 顔認識版</title>
     <link rel="stylesheet" href="style.css">
     
-    <!-- Three.js ライブラリ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js" 
-            integrity="sha512-n8IpKWzDnBOcBhRlHirMZOUvEq2bLRMuJGjuVqbzUJwtTsgwOgK5aS0c1JA0acqhjlgkEyHlnvgU59SbaNnREPEA==" 
-            crossorigin="anonymous"></script>
+    <!-- Three.js ライブラリ（より安定したCDN） -->
+    <script src="https://unpkg.com/three@0.126.1/build/three.min.js" crossorigin="anonymous"></script>
     
-    <!-- MediaPipe Face Detection -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+    <!-- MediaPipe Face Detection（安定版） -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6.1629159505/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4.1646425229/face_detection.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <!-- カメラ表示エリア -->
