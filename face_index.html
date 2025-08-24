@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <title>夏祭りARフィルター - 顔認識版</title>
+    <link rel="stylesheet" href="face_style.css">
+    
+    <!-- Three.js ライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js" 
+            integrity="sha512-n8IpKWzDnBOcBhRlHirMZOUvEq2bLRMuJGjuVqbzUJwtTsgwOgK5aS0c1JA0acqhjlgkEyHlnvgU59SbaNnREPEA==" 
+            crossorigin="anonymous"></script>
+    
+    <!-- MediaPipe Face Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <!-- カメラ表示エリア -->
+    <div id="container">
+        <video id="input_video" autoplay playsinline style="display: none;"></video>
+        <canvas id="output_canvas"></canvas>
+        
+        <!-- Three.js Canvas（ARオーバーレイ用） -->
+        <canvas id="three-canvas"></canvas>
+    </div>
+    
+    <!-- UI操作パネル -->
+    <div id="ui-panel">
+        <div class="festival-header">
+            <h1>🎭 夏祭りAR 🎭</h1>
+            <p>顔認識フィルター 2025</p>
+        </div>
+        
+        <!-- 顔認識ステータス -->
+        <div class="face-status" id="face-status">
+            <span class="status-icon">📱</span>
+            <span class="status-text">顔を探しています...</span>
+        </div>
+        
+        <!-- セキュリティ情報 -->
+        <div class="security-info">
+            <details>
+                <summary>🔒 プライバシー・セキュリティ</summary>
+                <div class="security-details">
+                    <p>✅ 顔認識はデバイス内でのみ処理</p>
+                    <p>✅ 映像・画像データは一切保存・送信されません</p>
+                    <p>✅ HTTPS暗号化通信を使用</p>
+                    <p>✅ オープンソースライブラリ使用</p>
+                    <p>⚠️ 顔の特徴点のみを検出（個人識別なし）</p>
+                </div>
+            </details>
+        </div>
+        
+        <div class="controls">
+            <button id="firework-btn" class="festival-button">
+                🎇 花火を打ち上げる
+            </button>
+            <button id="toggle-logo" class="festival-button">
+                🏮 ロゴ表示切替
+            </button>
+            <button id="change-logo" class="festival-button">
+                🎨 ロゴ変更
+            </button>
+        </div>
+        
+        <!-- エフェクト設定 -->
+        <div class="effect-controls">
+            <details>
+                <summary>🎛️ エフェクト設定</summary>
+                <div class="effect-options">
+                    <label>
+                        ロゴサイズ:
+                        <input type="range" id="logo-size" min="0.5" max="2" value="1" step="0.1">
+                        <span id="logo-size-value">1.0</span>
+                    </label>
+                    <label>
+                        ロゴ位置:
+                        <select id="logo-position">
+                            <option value="top">頭上</option>
+                            <option value="crown">王冠位置</option>
+                            <option value="forehead">額</option>
+                        </select>
+                    </label>
+                    <label>
+                        花火の強度:
+                        <input type="range" id="firework-intensity" min="1" max="5" value="3" step="1">
+                        <span id="firework-intensity-value">3</span>
+                    </label>
+                </div>
+            </details>
+        </div>
+        
+        <!-- 説明 -->
+        <div class="instructions">
+            <p>📱 カメラを自分の顔に向けてください</p>
+            <p>🎯 顔が認識されると頭上にロゴが表示されます</p>
+            <p>🎇 ボタンをタップして花火を楽しもう！</p>
+        </div>
+    </div>
+
+    <!-- ローディング画面 -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="face-loader">
+                <div class="face-outline">
+                    <div class="eye left"></div>
+                    <div class="eye right"></div>
+                    <div class="mouth"></div>
+                </div>
+            </div>
+            <p>顔認識AIを準備中...</p>
+            <div class="loading-steps">
+                <div class="step" id="step-camera">📹 カメラ起動中...</div>
+                <div class="step" id="step-mediapipe">🧠 AI読み込み中...</div>
+                <div class="step" id="step-three">🎮 3D環境準備中...</div>
+                <div class="step" id="step-ready">🎉 準備完了！</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- エラーメッセージ -->
+    <div id="error-message" style="display: none;">
+        <div class="error-content">
+            <h2>⚠️ 顔認識エラー</h2>
+            <p id="error-text">カメラの使用を許可してください</p>
+            <div class="error-actions">
+                <button onclick="location.reload()">再読み込み</button>
+                <button onclick="showFallbackMode()">代替モード</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ロゴ選択モーダル -->
+    <div id="logo-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-logo-modal">&times;</span>
+            <h2>🏮 ロゴを選択</h2>
+            <div class="logo-grid">
+                <div class="logo-option" data-logo="festival">
+                    <div class="logo-preview festival-logo">🎆 夏祭り 🎆</div>
+                    <p>夏祭りロゴ</p>
+                </div>
+                <div class="logo-option" data-logo="fireworks">
+                    <div class="logo-preview fireworks-logo">🎇 花火大会 🎇</div>
+                    <p>花火大会</p>
+                </div>
+                <div class="logo-option" data-logo="matsuri">
+                    <div class="logo-preview matsuri-logo">🏮 お祭り 🏮</div>
+                    <p>お祭り</p>
+                </div>
+                <div class="logo-option" data-logo="company">
+                    <div class="logo-preview company-logo">🏢 会社イベント 🏢</div>
+                    <p>会社イベント</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ヘルプボタン -->
+    <button id="help-btn" class="help-button">❓</button>
+
+    <!-- ヘルプモーダル -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-help-modal">&times;</span>
+            <h2>📖 使い方ガイド</h2>
+            <div class="help-content">
+                <div class="help-section">
+                    <h3>🎯 顔認識のコツ</h3>
+                    <ul>
+                        <li>明るい場所で使用してください</li>
+                        <li>カメラから30cm〜1m程度の距離</li>
+                        <li>顔を正面に向けてください</li>
+                        <li>髪の毛で顔が隠れないようにしてください</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>🎇 エフェクトの楽しみ方</h3>
+                    <ul>
+                        <li>花火ボタンで色とりどりの花火を打ち上げ</li>
+                        <li>ロゴサイズを調整して最適な大きさに</li>
+                        <li>ロゴ位置を変更して個性的な演出</li>
+                        <li>複数人で同時に楽しめます</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h3>📱 推奨環境</h3>
+                    <ul>
+                        <li>Chrome 90+ / Safari 14+</li>
+                        <li>iPhone 8+ / Android 8+</li>
+                        <li>安定したWi-Fi環境</li>
+                        <li>十分な照明</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインスクリプト -->
+    <script src="face_script.js"></script>
+</body>
+</html>
